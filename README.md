@@ -17,36 +17,38 @@
 
 The system consists of two primary interconnected components:
 
-1. **Camera Panel (this repository)**: A Python desktop application built with CustomTkinter, OpenCV, and Ultralytics YOLO. The current UI selects an MP4 file for processing and asks for a camera/location name and coordinates. It is not a live-camera-stream integration or user-authentication system.
+1. **Camera Panel (this repository)**: A Python desktop application built with CustomTkinter, OpenCV, and Ultralytics YOLO. The dashboard selects a configured camera from `assets/cameras.json`; the selected entry supplies the MP4 path and location coordinates. The current input is a video file, not a live-camera stream, and the launch screen is not an authority-user authentication system.
 2. **Management Panel (separate component)**: The companion Flutter application is maintained separately. This repository does not contain or validate that application's authentication or production workflows. The `web/` directory contains a standalone prototype, not a production authority client.
 
 ---
 
 ## 🏗️ System Architecture & Workflow
 
-The camera panel reads a selected video file, runs YOLO inference on sampled/resized frames, maintains a rolling pre-event frame buffer, and records post-trigger frames. The upload worker saves primary incident metadata and continues the existing FCM notification path. An optional secondary verifier queues random, chronologically ordered frames separately and asks AMD DeepSeek Vision for an advisory review. Verification is stored separately and does not gate the primary alert.
+The camera panel loads its camera list from `assets/cameras.json`, reads the selected camera's video file, runs YOLO inference on sampled/resized frames, maintains a rolling pre-event frame buffer, and records post-trigger frames. The upload worker saves primary incident metadata and continues the existing FCM notification path. An optional secondary verifier queues random, chronologically ordered frames separately and asks AMD DeepSeek Vision for an advisory review. Verification is stored separately and does not gate the primary alert.
 
 ```mermaid
 flowchart TD
-   A[📹 Video Source / Camera Feed] --> B[🖥️ OpenCV Frame Reader]
-   B --> C[🧠 YOLOv8 Inference Engine]
-   B --> D[🔄 10s Rolling Frame Buffer deque]
+   A[📄 assets/cameras.json] --> B[🎛️ Camera Dropdown]
+   B --> C[📹 Selected MP4]
+   C --> D[🖥️ OpenCV Frame Reader]
+   D --> E[🧠 YOLOv8 Inference Engine]
+   D --> F[🔄 10s Rolling Frame Buffer deque]
 
-   C -->|Accident Detected| E[🚨 Incident Trigger]
-   E --> F[⏱️ Record 10s Post-Accident Footage]
-   D --> G[🎬 Combine Pre + Post Frames into Video Clip]
-   F --> G
+   E -->|Accident Detected| G[🚨 Incident Trigger]
+   G --> H[⏱️ Record 10s Post-Accident Footage]
+   F --> I[🎬 Combine Pre + Post Frames into Video Clip]
+   H --> I
 
-    G --> H[🧵 Background Upload Queue]
-    H --> I[☁️ Cloudinary Upload]
-    H --> J[🔥 Save Primary Incident to Firestore]
-    J --> K[🔔 Send Existing FCM Alert]
-    K --> L[📱 Separate Authority App]
-    J --> M{Secondary verification enabled?}
-    M -->|Yes| N[🎲 Sample random ordered frames]
-    N --> O[🧠 DeepSeek-V4-Flash-Vision-Exp]
-    O -->|Advisory JSON result| P[🔥 Merge verification into Firestore]
-    M -->|No| Q[Continue without verification]
+    I --> J[🧵 Background Upload Queue]
+    J --> K[☁️ Cloudinary Upload]
+    J --> L[🔥 Save Primary Incident to Firestore]
+    L --> M[🔔 Send Existing FCM Alert]
+    M --> N[📱 Separate Authority App]
+    L --> O{Secondary verification enabled?}
+    O -->|Yes| P[🎲 Sample random ordered frames]
+    P --> Q[🧠 DeepSeek-V4-Flash-Vision-Exp]
+    Q -->|Advisory JSON result| R[🔥 Merge verification into Firestore]
+    O -->|No| S[Continue without verification]
 ```
 
 ---
@@ -54,11 +56,12 @@ flowchart TD
 ## ✨ Key Features
 
 - **Video-Based Accident Detection**: Runs the configured YOLO model on sampled, resized frames from the selected MP4 and recognizes the configured accident labels (`Accident`, `mild`, `moderate`, `severe`).
+- **Configured Camera Selection**: The dashboard camera dropdown is populated from `assets/cameras.json`. Each entry provides its display name, location, video path, latitude, and longitude.
 - **Dynamic Pre & Post Accident Capture**: Utilizes a circular ring buffer (`collections.deque`) to store 10 seconds of pre-accident footage prior to impact and automatically captures 10 seconds post-impact for comprehensive evidence.
 - **Asynchronous Cloud Pipeline**: Background workers handle video encoding, Cloudinary uploads, Firestore writes, FCM calls, and optional vision verification separately from the video processing loop.
 - **Automated Cloud Storage**: Automatically renders `.mp4` video clips and uploads them to **Cloudinary** under organized project directories.
 - **Incident Records and Alerts**: Writes accident records (severity, confidence, address, latitude/longitude, video URL, timestamp, and status) to **Firebase Firestore**, then sends **Firebase Cloud Messaging (FCM)** notifications to registered tokens when configured.
-- **Modern Dark-Themed GUI**: Built using **CustomTkinter** for operator station/location setup, video selection, detection controls, status, and a bounding-box preview. The camera-panel form is not user authentication.
+- **Modern Dark-Themed GUI**: Built using **CustomTkinter** for configured-camera selection, detection controls, status, and a bounding-box preview. The camera panel does not authenticate authority users.
 - **Detection Cooldown Engine**: Built-in anti-spam cooldown buffer to prevent duplicate alerts during continuous multi-vehicle incidents.
 - **Secondary Incident Verification (Optional)**: Sends a configurable number of randomly sampled, chronologically ordered incident frames to AMD `DeepSeek-V4-Flash-Vision-Exp`. The validated result is stored under the incident's `verification` field in Firestore. It is advisory: API errors or disagreement never cancel the primary alert. Reported fire/hazard evidence is guarded against a false-positive verdict.
 - **Verification Logs**: INFO logs report queued clips, sampled frame indices, request progress, verdict, confidence, recommended action, and Firestore persistence. The API key is never logged.
@@ -68,7 +71,7 @@ flowchart TD
 ## 📁 Repository Structure
 
 ```
-Crash-Guard-Camera-Panel/
+FYP-Crash-Guard/
 │
 ├── app/                        # Application package
 │   ├── __init__.py             # Package entry point
@@ -79,6 +82,7 @@ Crash-Guard-Camera-Panel/
 │   │   └── yolo_model.py       # Lazy YOLO model loading
 │   ├── services/
 │   │   ├── __init__.py
+│   │   ├── camera_service.py
 │   │   ├── cloudinary_service.py
 │   │   ├── detection_service.py
 │   │   ├── firebase_service.py
@@ -91,12 +95,13 @@ Crash-Guard-Camera-Panel/
 ├── main.py                     # Compatibility bootstrap to app.main
 ├── services/                   # Backwards-compatible service shims
 ├── models/                     # YOLO weights and legacy model compatibility module
-├── tests/                      # Config, service, and verifier regression tests
+├── tests/                      # Config, camera, service, and verifier regression tests
 ├── requirements.txt            # Python dependencies
 ├── .env.example                # Safe environment-variable template
-├── .env                        # Local secrets; ignored by Git
+├── .env                        # Local-only secrets; ignored and not committed
 ├── keys/                       # Local Firebase service credentials; ignored by Git
 ├── assets/                     # Sample videos and dataset assets
+│   └── cameras.json             # Camera dropdown entries and demo locations
 ├── presentation/               # Generated project presentation assets
 └── web/                        # Standalone UI prototype, not production auth
 ```
@@ -137,8 +142,8 @@ Follow these steps to set up and run the Crash Guard Camera Panel on your local 
 ### 📥 1. Clone the Repository
 
 ```bash
-git clone https://github.com/AliHaider151/Crash-Guard-Camera-Panel.git
-cd Crash-Guard-Camera-Panel
+git clone https://github.com/AliHaider151/FYP-Crash-Guard.git
+cd FYP-Crash-Guard
 ```
 
 ---
@@ -219,17 +224,15 @@ python main.py
 
 ## 🖥️ User Guide
 
-1.  **Station Configuration**:
-    - Upon launching, enter the **Camera Address / Location Name** (e.g., `Main Boulevard Highway Cam 04`).
-    - Enter the precise **Longitude** and **Latitude** of the camera placement.
-    - Click **Login** to open the monitoring dashboard. This form configures a camera location; it does not authenticate an authority user.
+1. **Select a camera**: Open the monitoring dashboard and choose `Camera 1` through `Camera 4` from the dropdown. The selected camera's configured location, coordinates, and MP4 path are displayed below it.
 
-2.  **Monitoring & Detection**:
-    - Click **📂 Select Video** to choose a traffic surveillance video file (`.mp4`).
-    - Click **▶ Start Detection** to process the selected video with the AI model.
-    - Bounding boxes will dynamically highlight detected objects and accident severities (`Accident`, `mild`, `moderate`, `severe`).
-    - The status indicator will switch from `Monitoring...` to `🚨 Accident Detected!` upon incident recognition.
-    - Click **■ Stop Detection** at any time to pause monitoring.
+   All four sample entries currently use `assets/videos/accident-video-4.mp4` and have distinct illustrative Rahim Yar Khan coordinates. Replace these demo locations with surveyed camera coordinates before operational deployment.
+
+2. **Monitoring & Detection**:
+   - Click **Start Detection** to process the selected camera's video with the AI model.
+   - Bounding boxes highlight detected classes (`Accident`, `mild`, `moderate`, `severe`).
+   - The status indicator changes from `Monitoring...` to `Accident Detected!` when a trigger class is recognized.
+   - Click **Stop Detection** to stop monitoring.
 
 ---
 
