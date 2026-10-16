@@ -251,7 +251,3 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - **Crash Guard Management Panel (Flutter App)**: A separate companion component. This repository contains neither its Flutter source nor a verified production authentication integration.
 
 ---
-
-## 📄 License
-
-This project is developed as a Final Year Project (FYP) for traffic safety research. Proprietary and academic rights reserved.
