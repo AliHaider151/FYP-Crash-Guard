@@ -1,0 +1,105 @@
+name: All AMD Token Factory
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Clef
+    provider: openai
+    model: Clef
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat, edit, apply]
+
+  - name: DeepSeek V4.1 Flash
+    provider: openai
+    model: DeepSeek-V4.1-Flash
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat, edit, apply]
+
+  - name: DeepSeek V4 Flash
+    provider: openai
+    model: DeepSeek-V4-Flash
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat, edit, apply]
+
+  - name: DeepSeek V4 Flash Vision Experimental
+    provider: openai
+    model: DeepSeek-V4-Flash-Vision-Exp
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat, edit, apply]
+    capabilities: [image_input]
+
+  - name: Gemma 4 31B IT
+    provider: openai
+    model: Gemma-4-31B-IT
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat, edit, apply]
+
+  - name: GLM 5.3 Flash
+    provider: openai
+    model: GLM-5.3-Flash
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat, edit, apply]
+
+  - name: MiMo V2.6 Flash
+    provider: openai
+    model: MiMo-V2.6-Flash
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat, edit, apply]
+
+  - name: MinerU 2.5 Pro
+    provider: openai
+    model: MinerU2.5-Pro
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat]
+
+  - name: MiniCPM5 2B
+    provider: openai
+    model: MiniCPM5-2B
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat, edit, apply]
+
+  - name: MiniCPM V 4.7 1B
+    provider: openai
+    model: MiniCPM-V-4.7-1B
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat]
+    capabilities: [image_input]
+
+  - name: MiniCPM V 4.7 35B A3B
+    provider: openai
+    model: MiniCPM-V-4.7-35B-A3B
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat]
+    capabilities: [image_input]
+
+  - name: OmniVoice
+    provider: openai
+    model: OmniVoice
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat]
+
+  - name: Qwen 3.8 27B
+    provider: openai
+    model: Qwen3.8-27B
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat, edit, apply]
+
+  - name: Qwen 3.8 Flash Next
+    provider: openai
+    model: Qwen3.8-Flash-Next
+    apiBase: https://developer.amd.com.cn/radeon/api/v1
+    apiKey: ${{ secrets.AMD_API_KEY }}
+    roles: [chat, edit, apply]
