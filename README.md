@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.13%2B-blue.svg)](https://www.python.org/)
 [![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-00FFFF.svg)](https://docs.ultralytics.com/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-Deep%20Learning-EE4C2C.svg)](https://pytorch.org/)
-[![CustomTkinter](https://img.shields.io/badge/GUI-CustomTkinter-blueviolet.svg)](https://github.com/TomSchimansky/CustomTkinter)
+[![Django](https://img.shields.io/badge/Web-Django-092E20.svg)](https://www.djangoproject.com/)
 [![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%26%20FCM-FFCA28.svg)](https://firebase.google.com/)
 [![Cloudinary](https://img.shields.io/badge/Cloudinary-Video%20Storage-3448C5.svg)](https://cloudinary.com/)
 
@@ -17,7 +17,7 @@
 
 The system consists of two primary interconnected components:
 
-1. **Camera Panel (this repository)**: A Python desktop application built with CustomTkinter, OpenCV, and Ultralytics YOLO. The dashboard selects a configured camera from `assets/cameras.json`; the selected entry supplies the MP4 path and location coordinates. The current input is a video file, not a live-camera stream, and the launch screen is not an authority-user authentication system.
+1. **Camera Panel (this repository)**: A Django web application built with OpenCV and Ultralytics YOLO. The browser dashboard selects a configured camera from `assets/cameras.json`; the selected entry supplies the MP4 path and location coordinates. The current input is a video file, not a live-camera stream, and the dashboard does not authenticate authority users.
 2. **Management Panel (separate component)**: The companion Flutter application is maintained separately. This repository does not contain or validate that application's authentication or production workflows. The `web/` directory contains a standalone prototype, not a production authority client.
 
 ---
@@ -61,7 +61,7 @@ flowchart TD
 - **Asynchronous Cloud Pipeline**: Background workers handle video encoding, Cloudinary uploads, Firestore writes, FCM calls, and optional vision verification separately from the video processing loop.
 - **Automated Cloud Storage**: Automatically renders `.mp4` video clips and uploads them to **Cloudinary** under organized project directories.
 - **Incident Records and Alerts**: Writes accident records (severity, confidence, address, latitude/longitude, video URL, timestamp, and status) to **Firebase Firestore**, then sends **Firebase Cloud Messaging (FCM)** notifications to registered tokens when configured.
-- **Modern Dark-Themed GUI**: Built using **CustomTkinter** for configured-camera selection, detection controls, status, and a bounding-box preview. The camera panel does not authenticate authority users.
+- **Dark-Themed Web Dashboard**: Built using **Django** for configured-camera selection, detection controls, status, and an annotated video preview in the browser. The camera panel does not authenticate authority users.
 - **Detection Cooldown Engine**: Built-in anti-spam cooldown buffer to prevent duplicate alerts during continuous multi-vehicle incidents.
 - **Secondary Incident Verification (Optional)**: Sends a configurable number of randomly sampled, chronologically ordered incident frames to AMD `DeepSeek-V4-Flash-Vision-Exp`. The validated result is stored under the incident's `verification` field in Firestore. It is advisory: API errors or disagreement never cancel the primary alert. Reported fire/hazard evidence is guarded against a false-positive verdict.
 - **Verification Logs**: INFO logs report queued clips, sampled frame indices, request progress, verdict, confidence, recommended action, and Firestore persistence. The API key is never logged.
@@ -87,10 +87,8 @@ FYP-Crash-Guard/
 │   │   ├── detection_service.py
 │   │   ├── firebase_service.py
 │   │   └── incident_verification_service.py
-│   └── ui/
-│       ├── __init__.py
-│       ├── dashboard.py        # Main dashboard logic
-│       └── login.py            # Login form and validation
+├── crashguard_site/            # Django project settings and entry points
+├── app/web/                    # Django dashboard, controls, and preview stream
 │
 ├── main.py                     # Compatibility bootstrap to app.main
 ├── services/                   # Backwards-compatible service shims
@@ -103,10 +101,10 @@ FYP-Crash-Guard/
 ├── assets/                     # Sample videos and dataset assets
 │   └── cameras.json             # Camera dropdown entries and demo locations
 ├── presentation/               # Generated project presentation assets
-└── web/                        # Standalone UI prototype, not production auth
+└── web/                        # Older standalone UI prototype (not used by Django)
 ```
 
-The application is now separated into a layered structure: configuration, model inference, service integrations, and GUI presentation. This keeps platform logic isolated from Firebase and Cloudinary operations and makes the app easier to maintain and test.
+The application is separated into configuration, model inference, service integrations, and web presentation. This keeps platform logic isolated from Firebase and Cloudinary operations and makes the app easier to maintain and test.
 
 ---
 
@@ -117,7 +115,7 @@ The application is now separated into a layered structure: configuration, model 
 | **Language**               | Python 3.13+                         | Core programming runtime                |
 | **AI / Computer Vision**   | Ultralytics YOLOv8, PyTorch          | Object detection & classification       |
 | **Video Processing**       | OpenCV (`cv2`)                       | Video stream ingestion & frame encoding |
-| **Desktop GUI**            | CustomTkinter, Tkinter, Pillow (PIL) | Modern dark-themed user interface       |
+| **Web Dashboard**          | Django, HTML, CSS, JavaScript         | Browser controls and annotated preview   |
 | **Cloud Storage**          | Cloudinary SDK                       | Hosting accident video clips (.mp4)     |
 | **Database & Messaging**   | Firebase Admin SDK (Firestore & FCM) | Incident metadata & push notifications  |
 | **Secondary Verification** | AMD OpenAI-compatible vision API     | Advisory visual incident review         |
@@ -127,7 +125,7 @@ The application is now separated into a layered structure: configuration, model 
 
 ## 🚀 Getting Started
 
-Follow these steps to set up and run the Crash Guard Camera Panel on your local machine or monitoring node.
+Follow these steps to set up and run the Crash Guard web dashboard on the same machine as its configured video files and YOLO model.
 
 ### 📋 Prerequisites
 
@@ -214,17 +212,21 @@ The app logs verifier progress to the terminal: selected frame indices, request 
 
 ### 🏃 5. Run the Application
 
-Execute the entry script:
+Start Django:
 
 ```bash
-python main.py
+python manage.py runserver
 ```
+
+Then open `http://127.0.0.1:8000/` in a browser. The compatibility command `python main.py` also starts the Django development server.
+
+The web server must be able to read `assets/cameras.json`, each configured video, and the YOLO model. Detection state and preview frames are held in process memory; use one Django application process for this dashboard. Do not expose Django's development server directly to the public internet.
 
 ---
 
 ## 🖥️ User Guide
 
-1. **Select a camera**: Open the monitoring dashboard and choose `Camera 1` through `Camera 4` from the dropdown. The selected camera's configured location, coordinates, and MP4 path are displayed below it.
+1. **Select a camera**: Open the browser dashboard and choose `Camera 1` through `Camera 4` from the dropdown. The selected camera's configured location, coordinates, and MP4 filename are displayed below it.
 
    All four sample entries currently use `assets/videos/accident-video-4.mp4` and have distinct illustrative Rahim Yar Khan coordinates. Replace these demo locations with surveyed camera coordinates before operational deployment.
 

@@ -5,10 +5,9 @@ import queue
 import threading
 import time
 from collections import deque
+from collections.abc import Callable
 
 import cv2
-import customtkinter as ctk
-from PIL import Image
 
 from app.config import get_config
 from app.models.yolo_model import get_model
@@ -33,7 +32,6 @@ DETECTION_MAX_HEIGHT = 360
 upload_queue: queue.Queue = queue.Queue()
 verification_queue: queue.Queue = queue.Queue()
 last_accident_time = 0.0
-stop_detection = False
 
 
 def _start_verification_worker() -> None:
@@ -139,15 +137,30 @@ def prepare_detection_frame(frame, max_width: int = DETECTION_MAX_WIDTH, max_hei
     return frame
 
 
-def start_detection(right_panel, status_label, name: str, longitude, latitude, video_path: str):
-    global stop_detection, last_accident_time
-    stop_detection = False
+def start_detection(
+    on_frame: Callable,
+    on_status: Callable[[str], None],
+    name: str,
+    longitude: float,
+    latitude: float,
+    video_path: str,
+    on_finished: Callable[[str | None], None],
+) -> threading.Event:
+    global last_accident_time
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
+        cap.release()
         raise IOError(f"Unable to open video file: {video_path}")
 
     fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
     frame_buffer = deque(maxlen=fps * BUFFER_SECONDS)
+    stop_event = threading.Event()
+
+    def report_status(text: str) -> None:
+        try:
+            on_status(text)
+        except Exception:
+            logger.exception("Failed to update detection status")
 
     def detection_loop() -> None:
         nonlocal fps
@@ -158,82 +171,81 @@ def start_detection(right_panel, status_label, name: str, longitude, latitude, v
         recording_start_time = 0.0
         accident_frames = []
         incident_boxes_info = []
-        clip_id = None
+        error = None
+        try:
+            while cap.isOpened() and not stop_event.is_set():
+                ret, frame = cap.read()
+                if not ret:
+                    break
 
-        while cap.isOpened() and not stop_detection:
-            ret, frame = cap.read()
-            if not ret:
-                break
+                frame_buffer.append(frame)
+                frame_count += 1
+                current_time = time.time()
 
-            frame_buffer.append(frame)
-            frame_count += 1
-            current_time = time.time()
+                if should_run_detection(frame_count):
+                    detection_frame = prepare_detection_frame(frame)
+                    results = get_model().predict(detection_frame, conf=0.25, verbose=False)
+                    annotated = results[0].plot()
+                    boxes_info = extract_boxes_info(results[0].boxes)
+                    accident_detected = any(box["cls_name"] in ACCIDENT_CLASSES for box in boxes_info)
+                else:
+                    annotated = frame
+                    boxes_info = []
+                    accident_detected = False
 
-            if should_run_detection(frame_count):
-                detection_frame = prepare_detection_frame(frame)
-                results = get_model().predict(detection_frame, conf=0.25, verbose=False)
-                annotated = results[0].plot()
-                boxes_info = extract_boxes_info(results[0].boxes)
-                accident_detected = any(box["cls_name"] in ACCIDENT_CLASSES for box in boxes_info)
-            else:
-                annotated = frame
-                boxes_info = []
-                accident_detected = False
-
-            if accident_detected and not is_recording and (current_time - last_accident_time > AFTER_SECONDS):
-                status_label.configure(text="Status: Accident Detected!")
-                logger.info("Accident detected at frame %s. Recording clip...", frame_count)
-                is_recording = True
-                recording_start_time = time.time()
-                accident_frames = []
-                incident_boxes_info = [box.copy() for box in boxes_info if box["cls_name"] in ACCIDENT_CLASSES]
-            elif not accident_detected and not is_recording:
-                status_label.configure(text="Status: Monitoring...")
-
-            if is_recording:
-                accident_frames.append(frame)
-                if accident_detected:
-                    for box in boxes_info:
-                        if box["cls_name"] not in ACCIDENT_CLASSES:
-                            continue
-                        existing = next((item for item in incident_boxes_info if item["cls_name"] == box["cls_name"]), None)
-                        if existing is None:
-                            incident_boxes_info.append(box.copy())
-                        elif box["conf"] > existing["conf"]:
-                            existing["conf"] = box["conf"]
-                if time.time() - recording_start_time >= AFTER_SECONDS:
-                    all_frames = list(frame_buffer) + accident_frames
-                    clip_id = int(time.time() * 1000)
-                    upload_queue.put((all_frames, fps, clip_id, incident_boxes_info, name, longitude, latitude))
-                    logger.info("Queued incident clip %s with %d frames for upload", clip_id, len(all_frames))
-                    is_recording = False
+                if accident_detected and not is_recording and (current_time - last_accident_time > AFTER_SECONDS):
+                    report_status("Status: Accident Detected!")
+                    logger.info("Accident detected at frame %s. Recording clip...", frame_count)
+                    is_recording = True
+                    recording_start_time = time.time()
                     accident_frames = []
-                    incident_boxes_info = []
-                    last_accident_time = time.time()
-                    status_label.configure(text="Status: Idle")
-                    logger.info("Uploaded clip ID: %s", clip_id)
+                    incident_boxes_info = [box.copy() for box in boxes_info if box["cls_name"] in ACCIDENT_CLASSES]
+                elif not accident_detected and not is_recording:
+                    report_status("Status: Monitoring...")
 
-            if frame_count % 2 == 0:
-                try:
-                    frame_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-                    image = Image.fromarray(frame_rgb)
-                    width = max(right_panel.winfo_width(), 1)
-                    height = max(right_panel.winfo_height(), 1)
-                    image = image.resize((width, height))
-                    preview = ctk.CTkImage(light_image=image, dark_image=image, size=(width, height))
-                    right_panel.configure(image=preview)
-                    right_panel.image = preview
-                except Exception:
-                    logger.exception("Failed to update preview image")
+                if is_recording:
+                    accident_frames.append(frame)
+                    if accident_detected:
+                        for box in boxes_info:
+                            if box["cls_name"] not in ACCIDENT_CLASSES:
+                                continue
+                            existing = next(
+                                (item for item in incident_boxes_info if item["cls_name"] == box["cls_name"]),
+                                None,
+                            )
+                            if existing is None:
+                                incident_boxes_info.append(box.copy())
+                            elif box["conf"] > existing["conf"]:
+                                existing["conf"] = box["conf"]
+                    if time.time() - recording_start_time >= AFTER_SECONDS:
+                        all_frames = list(frame_buffer) + accident_frames
+                        clip_id = int(time.time() * 1000)
+                        upload_queue.put((all_frames, fps, clip_id, incident_boxes_info, name, longitude, latitude))
+                        logger.info("Queued incident clip %s with %d frames for upload", clip_id, len(all_frames))
+                        is_recording = False
+                        accident_frames = []
+                        incident_boxes_info = []
+                        last_accident_time = time.time()
+                        report_status("Status: Idle")
+                        logger.info("Uploaded clip ID: %s", clip_id)
 
-            time.sleep(1.0 / max(fps, 1))
+                if frame_count % 2 == 0:
+                    try:
+                        on_frame(annotated)
+                    except Exception:
+                        logger.exception("Failed to update detection preview")
 
-        cap.release()
-        status_label.configure(text="Status: Idle")
+                time.sleep(1.0 / max(fps, 1))
+        except Exception as exc:
+            error = str(exc)
+            logger.exception("Detection processing failed")
+        finally:
+            cap.release()
+            report_status("Status: Error" if error else "Status: Idle")
+            try:
+                on_finished(error)
+            except Exception:
+                logger.exception("Failed to finalize detection session")
 
     threading.Thread(target=detection_loop, daemon=True).start()
-
-
-def stop_detection_func() -> None:
-    global stop_detection
-    stop_detection = True
+    return stop_event

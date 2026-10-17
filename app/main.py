@@ -1,6 +1,8 @@
 import logging
+import os
+import sys
 
-from app.ui.login import run_login_window
+from django.core.management import execute_from_command_line
 
 
 logging.basicConfig(
@@ -10,7 +12,8 @@ logging.basicConfig(
 
 
 def main() -> None:
-    run_login_window()
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "crashguard_site.settings")
+    execute_from_command_line([sys.argv[0], "runserver", *sys.argv[1:]])
 
 
 if __name__ == "__main__":

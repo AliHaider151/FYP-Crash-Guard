@@ -1,0 +1,81 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crash Guard | Monitoring Dashboard</title>
+    <link rel="stylesheet" href="{% static 'web/dashboard.css' %}">
+  </head>
+  <body>
+    <main
+      class="layout"
+      data-start-url="{% url 'web:start_detection' %}"
+      data-stop-url="{% url 'web:stop_detection' %}"
+      data-status-url="{% url 'web:detection_status' %}"
+      data-preview-url="{% url 'web:detection_preview' %}"
+    >
+      <aside class="sidebar">
+        <header class="brand">
+          <div class="brand-mark" aria-hidden="true">CG</div>
+          <div>
+            <h1>Crash Guard</h1>
+            <p>Traffic Safety Monitoring</p>
+          </div>
+        </header>
+
+        <section class="card camera-card">
+          <label for="camera">Select Camera</label>
+          <select id="camera" name="camera">
+            {% for camera in cameras %}
+              <option
+                value="{{ camera.name }}"
+                data-location="{{ camera.location }}"
+                data-latitude="{{ camera.latitude|floatformat:4 }}"
+                data-longitude="{{ camera.longitude|floatformat:4 }}"
+                data-video="{{ camera.video_path.name }}"
+              >{{ camera.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="camera-details" id="cameraDetails">
+            <strong>{{ cameras.0.location }}</strong>
+            <span>{{ cameras.0.latitude|floatformat:4 }}, {{ cameras.0.longitude|floatformat:4 }}</span>
+            <span>{{ cameras.0.video_path.name }}</span>
+          </div>
+        </section>
+
+        <section class="card controls">
+          <p class="section-label">Detection Control</p>
+          <div class="status-row">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText" role="status" aria-live="polite">Status: Idle</span>
+          </div>
+          <button class="button button-start" id="startButton" type="button">Start Detection</button>
+          <button class="button button-stop" id="stopButton" type="button" disabled>Stop Detection</button>
+          <p class="message" id="message" role="alert"></p>
+        </section>
+        <p class="sidebar-note">Detection uses the selected camera's configured video and location.</p>
+      </aside>
+
+      <section class="feed card">
+        <header class="feed-header">
+          <div>
+            <p class="section-label">Monitoring</p>
+            <h2>Video Preview</h2>
+          </div>
+          <span class="feed-badge">LIVE FEED</span>
+        </header>
+        <div class="preview" id="preview">
+          <div class="placeholder" id="placeholder">
+            <span class="placeholder-icon" aria-hidden="true">▶</span>
+            <h3>Video preview is idle</h3>
+            <p>Select a camera and start detection to view its annotated feed.</p>
+          </div>
+          <img id="previewImage" alt="Annotated camera detection preview" hidden>
+        </div>
+      </section>
+    </main>
+    <form hidden>{% csrf_token %}</form>
+    <script src="{% static 'web/dashboard.js' %}" defer></script>
+  </body>
+</html>
