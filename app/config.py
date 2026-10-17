@@ -37,7 +37,7 @@ class AppConfig:
     project_root: Path = field(default_factory=lambda: Path(__file__).resolve().parents[1])
     model_path: str = ""
     app_name: str = ""
-    firebase_key_path: str = ""
+    firebase_credentials_json: str = ""
     cloudinary: CloudinaryConfig = field(default_factory=CloudinaryConfig)
     incident_verification: IncidentVerificationConfig = field(default_factory=IncidentVerificationConfig)
 
@@ -48,7 +48,7 @@ class AppConfig:
 
         self.model_path = os.getenv("MODEL_PATH", "best-train-2.pt")
         self.app_name = os.getenv("APP_NAME", "Crash Guard")
-        self.firebase_key_path = os.getenv("FIREBASE_KEY_PATH", "keys/service-account.json")
+        self.firebase_credentials_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
         self.cloudinary = CloudinaryConfig(
             cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
             api_key=os.getenv("CLOUDINARY_API_KEY", ""),

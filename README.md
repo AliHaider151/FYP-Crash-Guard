@@ -183,13 +183,23 @@ pip install -r requirements.txt
 
    On macOS/Linux, use `cp .env.example .env`.
 
-2. **Set up Firebase**: Create a service account in Firebase Console and save its JSON key as `keys/service-account.json`. Never commit this file.
+2. **Set up Firebase**: Create a service account in Firebase Console, then set `FIREBASE_SERVICE_ACCOUNT_JSON` in `.env` to the full JSON. For multiline JSON, put a single quote immediately after `=` and another after the closing `}`, as shown below. JSON keys and values must use double quotes. Never commit the key or `.env`.
+
+   ```env
+   FIREBASE_SERVICE_ACCOUNT_JSON='{
+     "type": "service_account",
+     "private_key": "-----BEGIN PRIVATE KEY-----\n...key contents...\n-----END PRIVATE KEY-----\n",
+     "project_id": "your-project-id"
+   }'
+   ```
+
+   For Vercel, add `FIREBASE_SERVICE_ACCOUNT_JSON` under **Project Settings → Environment Variables**, paste the JSON as its value (without the outer `.env` single quotes), and redeploy. Vercel does not read your local `.env` file. The JSON must be valid, and the private key must retain its escaped `\n` sequences.
 
 3. **Set Cloudinary credentials** in `.env` using `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`.
 
 4. **Set up optional AMD verification**: Add your AMD key to `AMD_API_KEY` in the local `.env`. The endpoint, model, sample count, enable flag, and timeout can also be configured there. Do not put real credentials in `.env.example`, source files, or chat. `.env` and service-account files are intended to be Git-ignored.
 
-5. **Protect credentials**: If a real key has been placed in a shared template or committed file, treat it as exposed and rotate/revoke it in the provider console.
+5. **Protect credentials**: If a real key has been placed in chat, a shared template, or a committed file, treat it as exposed and revoke it in the provider console. Create a replacement service-account key and update your local `.env` or Vercel environment variable.
 
 ### Secondary Incident Verification
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from typing import Iterable
 
@@ -37,11 +38,21 @@ def get_db():
         return _db
 
     config = get_config()
-    firebase_key_path = config.resolve_path(config.firebase_key_path)
-    if not firebase_key_path.exists():
-        raise FileNotFoundError(f"Firebase key not found: {firebase_key_path}")
+    if not config.firebase_credentials_json:
+        raise ValueError("FIREBASE_SERVICE_ACCOUNT_JSON is required to connect to Firebase")
+    try:
+        service_account = json.loads(config.firebase_credentials_json)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "FIREBASE_SERVICE_ACCOUNT_JSON must contain valid JSON; in a .env file, "
+            "enclose the complete JSON object in matching single quotes and use double "
+            "quotes for JSON keys and string values"
+        ) from exc
+    if not isinstance(service_account, dict):
+        raise ValueError("FIREBASE_SERVICE_ACCOUNT_JSON must contain a JSON object")
+    firebase_credential = credentials.Certificate(service_account)
 
-    firebase_admin.initialize_app(credentials.Certificate(str(firebase_key_path)))
+    firebase_admin.initialize_app(firebase_credential)
     _db = firestore.client()
     return _db
 
