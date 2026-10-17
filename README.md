@@ -2,6 +2,11 @@
 
 ### _AI-Powered Traffic Camera Accident Detection & Alert System_
 
+### Authorities Panel
+
+- **Source code:** [CrashGuard-Authorties-Panel](https://github.com/AliHaider151/CrashGuard-Authorties-Panel)
+- **Live deployment:** [Authorities Panel](https://finalyearproject-b5ce4.web.app/)
+
 [![Python](https://img.shields.io/badge/Python-3.13%2B-blue.svg)](https://www.python.org/)
 [![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-00FFFF.svg)](https://docs.ultralytics.com/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-Deep%20Learning-EE4C2C.svg)](https://pytorch.org/)
@@ -18,7 +23,7 @@
 The system consists of two primary interconnected components:
 
 1. **Camera Panel (this repository)**: A Django web application built with OpenCV and Ultralytics YOLO. The browser dashboard selects a configured camera from `assets/cameras.json`; the selected entry supplies the MP4 path and location coordinates. The current input is a video file, not a live-camera stream, and the dashboard does not authenticate authority users.
-2. **Management Panel (separate component)**: The companion Flutter application is maintained separately. This repository does not contain or validate that application's authentication or production workflows. The `web/` directory contains a standalone prototype, not a production authority client.
+2. **Authorities Panel (separate component)**: The companion application is maintained separately ([source code](https://github.com/AliHaider151/CrashGuard-Authorties-Panel), [live deployment](https://finalyearproject-b5ce4.web.app/)). This repository does not contain or validate that application's authentication or production workflows. The `web/` directory contains a standalone prototype, not a production authority client.
 
 ---
 
