@@ -232,6 +232,8 @@ Then open `http://127.0.0.1:8000/` in a browser. The compatibility command `pyth
 
 The web server must be able to read `assets/cameras.json`, each configured video, and the YOLO model. Detection state and preview frames are held in process memory; use one Django application process for this dashboard. Do not expose Django's development server directly to the public internet.
 
+The root `.vercelignore` excludes local virtual environments, caches, tests, and archived media from Vercel source uploads. Git-connected Vercel deployments already receive only tracked files, so they do not upload `.venv/`. `.vercelignore` does not reduce the size of packages installed from `requirements.txt`; large ML dependencies such as PyTorch can still exceed Vercel's serverless function bundle limit. The configured YOLO model and camera video remain included for the detection workflow.
+
 ---
 
 ## 🖥️ User Guide
