@@ -120,7 +120,7 @@ The application is separated into configuration, model inference, service integr
 | **Language**               | Python 3.13+                         | Core programming runtime                |
 | **AI / Computer Vision**   | Ultralytics YOLOv8, PyTorch          | Object detection & classification       |
 | **Video Processing**       | OpenCV (`cv2`)                       | Video stream ingestion & frame encoding |
-| **Web Dashboard**          | Django, HTML, CSS, JavaScript         | Browser controls and annotated preview   |
+| **Web Dashboard**          | Django, HTML, CSS, JavaScript        | Browser controls and annotated preview  |
 | **Cloud Storage**          | Cloudinary SDK                       | Hosting accident video clips (.mp4)     |
 | **Database & Messaging**   | Firebase Admin SDK (Firestore & FCM) | Incident metadata & push notifications  |
 | **Secondary Verification** | AMD OpenAI-compatible vision API     | Advisory visual incident review         |
@@ -271,5 +271,8 @@ python -m unittest discover -s tests -p "test_*.py" -v
 ## 🔗 Related Components
 
 - **Crash Guard Management Panel (Flutter App)**: A separate companion component. This repository contains neither its Flutter source nor a verified production authentication integration.
+
+- **Source code:** [CrashGuard-Authorties-Panel](https://github.com/AliHaider151/CrashGuard-Authorties-Panel)
+- **Live deployment:** [Authorities Panel](https://finalyearproject-b5ce4.web.app/)
 
 ---
